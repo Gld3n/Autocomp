@@ -14,6 +14,7 @@ var buildCmd = &cobra.Command{
 	Use:   "build",
 	Short: "Start the auto-compiling process",
 	Run: func(cmd *cobra.Command, filename []string) {
+		// get the first argument
 		f := filename[0]
 
 		fmt.Printf("Started watching at %s\n", f)
@@ -22,7 +23,7 @@ var buildCmd = &cobra.Command{
 	},
 }
 
-//
+// all the logic behind changing file monitoring
 func watch(filename string) {
 	watcher, err := fs.NewWatcher()
 	if err != nil {
@@ -42,8 +43,10 @@ func watch(filename string) {
 					func() {
 						fmt.Println("build initialized...")
 
+						// specify the file we want to look at and the command
 						cmd := exec.Command("go", "build", filename)
 
+						// start compiling the file calling 'go build' and look for errors
 						stdoutStderr, err := cmd.CombinedOutput()
 						if err != nil {
 							log.Fatal(err)
@@ -54,6 +57,7 @@ func watch(filename string) {
 
 					}()
 				}
+			// return the function if not ok or log the error whether there's any
 			case err, ok := <-watcher.Errors:
 				if !ok {
 					return
@@ -63,6 +67,7 @@ func watch(filename string) {
 		}
 	}()
 
+	// start watching the file specified
 	err = watcher.Add(filename)
 	if err != nil {
 		log.Fatal(err)
