@@ -18,6 +18,7 @@ files into your directory to save you some time!`,
 }
 
 func Execute() {
+	// call the root command and verify there's no errors
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Println(err)
 		os.Exit(1)

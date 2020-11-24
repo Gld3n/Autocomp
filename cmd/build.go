@@ -4,10 +4,9 @@ package cmd
 import (
 	"fmt"
 	fs "github.com/fsnotify/fsnotify"
+	"github.com/spf13/cobra"
 	"log"
 	"os/exec"
-
-	"github.com/spf13/cobra"
 )
 
 // buildCmd represents the build command
@@ -15,27 +14,16 @@ var buildCmd = &cobra.Command{
 	Use:   "build",
 	Short: "Start the auto-compiling process",
 	Run: func(cmd *cobra.Command, filename []string) {
-		fmt.Println("build initialized...")
+		f := filename[0]
 
-		//file := fmt.Sprint(filename[0:1])
-
-		c := exec.Command("go", "run", "watcher.go")
-		/*if err := c.Run(); err != nil {
-			log.Fatal(err)
-		}*/
-		stdoutStderr, err := c.CombinedOutput()
-		if err != nil {
-			log.Fatal(err)
-		}
-		fmt.Printf("%s\n", stdoutStderr)
+		fmt.Printf("Started watching at %s\n", f)
+		// Establish a watcher for the file we want to observe for changes
+		watch(f)
 	},
 }
 
-func init() {
-	rootCmd.AddCommand(buildCmd)
-}
-
-func watcher() {
+//
+func watch(filename string) {
 	watcher, err := fs.NewWatcher()
 	if err != nil {
 		log.Fatal(err)
@@ -50,9 +38,21 @@ func watcher() {
 				if !ok {
 					return
 				}
-				log.Println("event:", event)
 				if event.Op&fs.Write == fs.Write {
-					log.Println("modified file:", event.Name)
+					func() {
+						fmt.Println("build initialized...")
+
+						cmd := exec.Command("go", "build", filename)
+
+						stdoutStderr, err := cmd.CombinedOutput()
+						if err != nil {
+							log.Fatal(err)
+						}
+						fmt.Printf("%s\n", stdoutStderr)
+
+						fmt.Printf("File %s built succesfully\n", filename)
+
+					}()
 				}
 			case err, ok := <-watcher.Errors:
 				if !ok {
@@ -63,10 +63,14 @@ func watcher() {
 		}
 	}()
 
-	err = watcher.Add("./build.go")
+	err = watcher.Add(filename)
 	if err != nil {
 		log.Fatal(err)
 	}
 	<-done
+}
+
+func init() {
+	rootCmd.AddCommand(buildCmd)
 }
 
