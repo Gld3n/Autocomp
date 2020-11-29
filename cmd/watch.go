@@ -37,7 +37,7 @@ func watch(filename string) {
 			select {
 			case event, ok := <-watcher.Events:
 				if !ok {
-					return
+					//return
 				}
 				if event.Op&fs.Write == fs.Write {
 					func() {
