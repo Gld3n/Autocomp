@@ -7,8 +7,8 @@ import (
 )
 
 // buildCmd represents the build command
-var buildCmd = &cobra.Command{
-	Use:     "watch [-R] file",
+var watchCmd = &cobra.Command{
+	Use:     "watch [--run] <file>",
 	Aliases: []string{"w"},
 	Short:   "Start the auto-compiling process",
 	Example: "watch -R main.go",
@@ -28,8 +28,4 @@ var buildCmd = &cobra.Command{
 // all the logic behind changing file monitoring
 func watch(filename string) {
 	fmt.Printf("watching: %s\n", filename)
-}
-
-func init() {
-	rootCmd.AddCommand(buildCmd)
 }
