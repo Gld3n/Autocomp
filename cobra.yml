@@ -1,0 +1,4 @@
+author: Robert Vale <gld3ndev30@hotmail.com>
+year: 2020
+license: Apache License
+  text: {{ .copyright }}

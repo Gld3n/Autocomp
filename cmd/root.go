@@ -1,27 +1,22 @@
+//Package cmd provides the commands logic
 // Copyright © 2020 Gld3n gld3ndev30@hotmail.com
 package cmd
 
 import (
 	"fmt"
-	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
-	"log"
 	"os"
+
+	"github.com/spf13/cobra"
 )
 
 // rootCmd represents the base command when called without any subcommands.
-var (
-	// Used for flags.
-	author string
-
-	rootCmd = &cobra.Command{
-		Use:   "autocomp <command>",
-		Short: "Autocomp will build your files automatically!",
-		Long: `Autocomp is a package designed to build .go files in real time
+var rootCmd = &cobra.Command{
+	Use:   "autocomp <command>",
+	Short: "Autocomp will build your files automatically!",
+	Long: `Autocomp is a package designed to build .go files in real time
 without the need to do it manually. Autocomp will search for changing
 files into your directory to save you some time!`,
-	}
-)
+}
 
 // Execute executes the root command.
 func Execute() {
@@ -33,11 +28,15 @@ func Execute() {
 }
 
 func init() {
-	rootCmd.PersistentFlags().StringVarP(&author, "author", "a", "Robert Vale",
+	/* author := rootCmd.PersistentFlags().BoolP("author", "a", false,
 		"author name for copyright attribution")
 	err := viper.BindPFlag("author", rootCmd.PersistentFlags().Lookup("author"))
 	if err != nil {
 		log.Fatal(err)
 	}
+	fmt.Println(author)
+	if *author {
+		fmt.Println("CLI made by Gld3n")
+	} */
 	rootCmd.AddCommand(watchCmd)
 }
