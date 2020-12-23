@@ -1,5 +1,5 @@
 // Package cmd contains all the commands logic
-// Copyright © 2020 Gld3m gld3ndev30@hotmail.com
+// Copyright © 2020 Gld3n gld3ndev30@hotmail.com
 package cmd
 
 import (
@@ -16,20 +16,22 @@ var watchCmd = &cobra.Command{
 	Aliases: []string{"w"},
 	Short:   "Start the auto-compiling process",
 	Example: "watch --run main.go",
+	Args:    cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		w, err := fsnotify.NewWatcher()
 		if err != nil {
-			log.Fatal(err)
+			log.Fatalln(err)
 		}
 		defer w.Close()
 
 		done := make(chan bool)
+
+		if err = w.Add(args[0]); err != nil {
+			log.Fatalln(err)
+		}
+
 		go watch(w)
 
-		err = w.Add("./main.go")
-		if err != nil {
-			log.Fatal(err)
-		}
 		<-done
 	},
 	PostRun: func(cmd *cobra.Command, args []string) {
@@ -39,18 +41,20 @@ var watchCmd = &cobra.Command{
 
 // watch will look for changes in the specified file.
 func watch(w *fsnotify.Watcher) {
-	fmt.Println("Started watching for file changes.")
+	fmt.Println("Started watching for changes.\n")
 	for {
 		select {
 		case ev := <-w.Events:
-			fmt.Printf("Modified file: %s.\n", ev.Name)
+			fmt.Printf("- Modified file: %s.\n", ev.Name)
 			if ev.Op&fsnotify.Write == fsnotify.Write {
-				log.Println("Change detected.")
-				fmt.Println("Starting the build process...")
+				fmt.Println("Starting the build process...\n")
+
 			}
 
 		case err := <-w.Errors:
-			log.Fatal(err)
+			if err != nil {
+				log.Fatalln(err)
+			}
 		}
 	}
 }

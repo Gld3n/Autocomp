@@ -1,2 +1,2 @@
 # Autocomp
-Simple real-time Go files builder
+Simple real-time Go files watcher.

@@ -1,4 +1,4 @@
-//Copyright © 2020 Robert Vale gld3ndev30@hotmail.com
+//Copyright © 2020 Gld3n gld3ndev30@hotmail.com
 package main
 
 import (
