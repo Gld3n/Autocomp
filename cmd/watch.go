@@ -5,6 +5,9 @@ package cmd
 import (
 	"fmt"
 	"log"
+	"os/exec"
+	"path/filepath"
+	"time"
 
 	"github.com/fsnotify/fsnotify"
 	"github.com/spf13/cobra"
@@ -24,37 +27,83 @@ var watchCmd = &cobra.Command{
 		}
 		defer w.Close()
 
-		done := make(chan bool)
+		fmt.Println("Started watching for changes.")
 
-		if err = w.Add(args[0]); err != nil {
-			log.Fatalln(err)
-		}
-
-		go watch(w)
-
-		<-done
-	},
-	PostRun: func(cmd *cobra.Command, args []string) {
-		fmt.Println("Ended running.")
-	},
-}
-
-// watch will look for changes in the specified file.
-func watch(w *fsnotify.Watcher) {
-	fmt.Println("Started watching for changes.\n")
-	for {
-		select {
-		case ev := <-w.Events:
-			fmt.Printf("- Modified file: %s.\n", ev.Name)
-			if ev.Op&fsnotify.Write == fsnotify.Write {
-				fmt.Println("Starting the build process...\n")
-
-			}
-
-		case err := <-w.Errors:
-			if err != nil {
+		for _, arg := range args {
+			if err = w.Add(filepath.Dir(arg)); err != nil {
 				log.Fatalln(err)
 			}
 		}
+
+		ticker := time.NewTicker(300 * time.Millisecond)
+		evs := make([]fsnotify.Event, 1)
+		for {
+			select {
+			case ev, ok := <-w.Events:
+				if !ok {
+					return
+				}
+
+				if !inArgs(args, ev.Name) {
+					continue
+				}
+
+				fmt.Printf("\n- Modified file: %s (%s).\n", ev.Name, ev.Op)
+
+				// Add current event to array for batching.
+				evs = append(evs, ev)
+			case <-ticker.C:
+				// Checks on set interval if there are events.
+				if len(evs) > 0 {
+					// Display messages for each event in batch.
+					for _, event := range evs {
+						if event.Op == fsnotify.Write {
+							fmt.Printf("\nFile write detected: %v (%v)\n", event.Name, event.Op)
+						}
+						if event.Op == fsnotify.Remove {
+							fmt.Printf("\nFile delete detected: %v (%v)\n", event.Name, event.Op)
+						}
+						if event.Op == fsnotify.Rename {
+							fmt.Printf("\nFile rename detected: %v (%v)\n", event.Name, event.Op)
+						}
+
+						build()
+						// Empty the batch array.
+						evs = make([]fsnotify.Event, 0)
+					}
+				} else {
+					continue
+				}
+
+				evs = make([]fsnotify.Event, 0)
+			case err, ok := <-w.Errors:
+				if !ok {
+					return
+				}
+
+				if err != nil {
+					log.Fatalln(err)
+				}
+			}
+		}
+	},
+}
+
+func build() {
+	cmd := exec.Command("go", "build", "main.go")
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		log.Fatalln(err)
 	}
+	fmt.Printf("combined out:\n%s\n", string(out))
+}
+
+func inArgs(args []string, evName string) bool {
+	for _, arg := range args {
+		if evName == arg {
+			return true
+		}
+	}
+
+	return false
 }
