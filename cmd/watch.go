@@ -29,13 +29,15 @@ var watchCmd = &cobra.Command{
 
 		fmt.Println("Started watching for changes.")
 
+		// Add the directory of the given file instead of the file directly.
 		for _, arg := range args {
 			if err = w.Add(filepath.Dir(arg)); err != nil {
 				log.Fatalln(err)
 			}
 		}
 
-		ticker := time.NewTicker(300 * time.Millisecond)
+		// A new ticker to batch the incoming events.
+		tick := time.Tick(300 * time.Millisecond)
 		evs := make([]fsnotify.Event, 1)
 		for {
 			select {
@@ -52,30 +54,35 @@ var watchCmd = &cobra.Command{
 
 				// Add current event to array for batching.
 				evs = append(evs, ev)
-			case <-ticker.C:
+			case <-tick:
 				// Checks on set interval if there are events.
-				if len(evs) > 0 {
-					// Display messages for each event in batch.
-					for _, event := range evs {
-						if event.Op == fsnotify.Write {
-							fmt.Printf("\nFile write detected: %v (%v)\n", event.Name, event.Op)
-						}
-						if event.Op == fsnotify.Remove {
-							fmt.Printf("\nFile delete detected: %v (%v)\n", event.Name, event.Op)
-						}
-						if event.Op == fsnotify.Rename {
-							fmt.Printf("\nFile rename detected: %v (%v)\n", event.Name, event.Op)
-						}
-
-						build()
-						// Empty the batch array.
-						evs = make([]fsnotify.Event, 0)
-					}
-				} else {
+				if len(evs) == 0 {
 					continue
 				}
 
-				evs = make([]fsnotify.Event, 0)
+				// Display messages for each event in batch.
+				for _, event := range evs {
+					if event.Op == fsnotify.Write {
+						fmt.Printf("\nFile write detected: %v\n", event.Name)
+					}
+					if event.Op == fsnotify.Remove {
+						fmt.Printf("\nFile delete detected: %v\n", event.Name)
+					}
+					if event.Op == fsnotify.Rename {
+						fmt.Printf("\nFile rename detected: %v\n", event.Name)
+					}
+
+					// initialize the build process.
+					err := build(args[0])
+					if err != nil {
+						log.Fatalln(err)
+						return
+					}
+				}
+
+				// Empty the batch array.
+\				evs = make([]fsnotify.Event, 0)
+			// Checksfor any error while the watching process.
 			case err, ok := <-w.Errors:
 				if !ok {
 					return
@@ -89,15 +96,21 @@ var watchCmd = &cobra.Command{
 	},
 }
 
-func build() {
-	cmd := exec.Command("go", "build", "main.go")
+// build is going to receive the file being watched as argument and compile it
+// everytime an event is fired.
+func build(file string) return error {
+	cmd := exec.Command("go", "build", file)
+	// Start running the command.
 	out, err := cmd.CombinedOutput()
 	if err != nil {
-		log.Fatalln(err)
+		return err
 	}
 	fmt.Printf("combined out:\n%s\n", string(out))
+
+	return nil
 }
 
+// Checks if the detected file is the one given as argument.
 func inArgs(args []string, evName string) bool {
 	for _, arg := range args {
 		if evName == arg {
@@ -105,5 +118,6 @@ func inArgs(args []string, evName string) bool {
 		}
 	}
 
+	// No matches as default
 	return false
 }
